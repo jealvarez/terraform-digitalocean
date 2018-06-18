@@ -18,7 +18,9 @@ ssh-keygen -t rsa -C root
 
 <img src="./docs/images/digitalocean_api_tokens_1.jpg " width="100%" height="500" />
 
-<img src="./docs/images/digitalocean_api_tokens_2.jpg " width="50%" height="300" />
+<p align="center">
+  <img  src="./docs/images/digitalocean_api_tokens_2.jpg " width="50%" height="300" />
+</p>
 
 * Copy the token and set it to `digitalocean_token` variable into `variables.tf`
 
