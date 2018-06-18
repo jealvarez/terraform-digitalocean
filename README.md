@@ -2,7 +2,7 @@
 
 ## Requirements
 
-* DigitalOcean Account
+* [DigitalOcean](http://digitalocean.com/) Account
 
 * Terraform v0.11.7+
 
