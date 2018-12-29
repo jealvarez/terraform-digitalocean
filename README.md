@@ -1,32 +1,19 @@
-# **Virtual Machine**
+# **Droplet**
 
 ## Requirements
 
-* [DigitalOcean](http://digitalocean.com/) Account
+- [DigitalOcean](http://digitalocean.com/) Account
+  - DigitalOcean Token
+  - Spaces Access Keys
+  - Created Space
+- Terraform v0.11.7+
 
-* Terraform v0.11.7+
+## Steps
 
-## Deployment
+- Execute `init.sh` script
 
-* Generate a `ssh-key` into `ssh-keys` folder
-
-```ssh
-ssh-keygen -t rsa -C root
+```bash
+./init.sh
 ```
 
-* Generate Digital Ocean Token
-
-<img src="./docs/images/digitalocean_api_tokens_1.jpg " width="100%" height="500" />
-
-<p align="center">
-  <img  src="./docs/images/digitalocean_api_tokens_2.jpg " width="50%" height="300" />
-</p>
-
-* Copy the token and set it to `digitalocean_token` variable into `variables.tf`
-
-* Creating the infrastructure
-
-```ssh
-terraform init
-terraform apply
-```
+- If you want to know which commands were executed, see `output.log` file

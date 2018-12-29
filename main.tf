@@ -1,40 +1,100 @@
 terraform {
   required_version = ">= 0.11.7"
+
+  backend "s3" {
+    skip_credentials_validation = true
+  }
 }
 
 provider "digitalocean" {
-  token   = "${local.digitalocean_token}"
-  version = "~> 0.1"
+  token   = "${var.digitalocean_token}"
+  version = "~> 0.1.3"
 }
 
-# docker tag
-module "docker_tag" {
-  source = "./modules/tag"
-  name   = "docker"
+# ------------------------------------------------------------------------
+# SSH Key
+# ------------------------------------------------------------------------
+resource "digitalocean_ssh_key" "ssh_key" {
+  name       = "${var.droplet["name"]}-${var.tag_name}"
+  public_key = "${file(var.ssh_key["public_key"])}"
 }
 
-# docker ssh-key
-module "docker_ssh_key" {
-  source     = "./modules/ssh-key"
-  name       = "Docker"
-  public_key = "${local.public_key}"
+# ------------------------------------------------------------------------
+# Tags
+# ------------------------------------------------------------------------
+resource "digitalocean_tag" "tag" {
+  name = "${var.tag_name}"
 }
 
-# docker droplet
-module "docker_vm" {
-  source              = "./modules/droplets/docker"
-  image               = "ubuntu-17-10-x64"
-  name                = "containerized-apps"
-  region              = "nyc1"
-  size                = "1gb"
-  tags                = ["${module.docker_tag.tag_id}"]
-  private_key         = "${local.private_key}"
-  ssh_key_fingerprint = ["${module.docker_ssh_key.fingerprint}"]
+# ------------------------------------------------------------------------
+# Droplet
+# ------------------------------------------------------------------------
+resource "digitalocean_droplet" "droplet" {
+  name               = "${var.droplet["name"]}"
+  image              = "${var.droplet["image"]}"
+  region             = "${var.droplet["region"]}"
+  size               = "${var.droplet["size"]}"
+  private_networking = "${var.droplet["private_networking"]}"
+
+  tags = ["${digitalocean_tag.tag.id}"]
+
+  ssh_keys = ["${digitalocean_ssh_key.ssh_key.fingerprint}"]
+
+  connection {
+    user        = "${var.droplet["connection_user"]}"
+    type        = "${var.droplet["connection_type"]}"
+    private_key = "${file(var.ssh_key["private_key"])}"
+    timeout     = "1m"
+  }
+
+  provisioner "file" {
+    source      = "./scripts/install-packages.sh"
+    destination = "/tmp/install-packages.sh"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "chmod +x /tmp/install-packages.sh",
+      "/tmp/install-packages.sh",
+    ]
+  }
 }
 
-# docker firewall
-module "docker_vm_firewall" {
-  source       = "./modules/firewall"
-  name         = "docker-firewall"
-  droplet_tags = ["${module.docker_tag.tag_id}"]
+# ------------------------------------------------------------------------
+# Firewalls
+# ------------------------------------------------------------------------
+resource "digitalocean_firewall" "firewall" {
+  name        = "${var.droplet["name"]}"
+  droplet_ids = ["${digitalocean_droplet.droplet.id}"]
+
+  inbound_rule = [
+    {
+      protocol         = "tcp"
+      port_range       = "22"
+      source_addresses = ["0.0.0.0/0", "::/0"]
+    },
+    {
+      protocol         = "tcp"
+      port_range       = "80"
+      source_addresses = ["0.0.0.0/0", "::/0"]
+    },
+    {
+      protocol         = "tcp"
+      port_range       = "443"
+      source_addresses = ["0.0.0.0/0", "::/0"]
+    },
+  ]
+
+  outbound_rule = [
+    {
+      protocol              = "tcp"
+      port_range            = "1-65535"
+      destination_addresses = ["0.0.0.0/0"]
+    },
+    {
+      protocol              = "udp"
+      port_range            = "1-65535"
+      destination_addresses = ["0.0.0.0/0"]
+    },
+  ]
 }
